@@ -1,5 +1,4 @@
-// xp.js
-// Manages XP, leveling, and notifies the HUD when values change
+// xp.js — XP, leveling, and HUD notifications
 
 const MAX_LEVELS = 25
 const BASE_XP = 10

@@ -1,8 +1,14 @@
-// projectiles.js
-// Centralizes projectile creation and lifecycle with a simple pool
+// projectiles.js — projectile pool and lifecycle
 
 const POOL_SIZE = 24
 const pool = []
+let _worldW = Infinity
+let _worldH = Infinity
+
+export function initProjectiles({ worldW = Infinity, worldH = Infinity } = {}) {
+    _worldW = worldW
+    _worldH = worldH
+}
 
 function makeBullet(spriteName = "bullet", scaleVal = 0.14) {
     const b = add([
@@ -14,6 +20,17 @@ function makeBullet(spriteName = "bullet", scaleVal = 0.14) {
         "projectile",
     ])
     b.hidden = true
+    // Cull bullets that move off the world bounds
+    b.onUpdate(() => {
+        try {
+            if (b.hidden) return
+            const x = b.pos.x
+            const y = b.pos.y
+            if (x < 0 || y < 0 || x > _worldW || y > _worldH) {
+                try { destroy(b) } catch (e) { }
+            }
+        } catch (e) { }
+    })
     return b
 }
 
@@ -64,6 +81,17 @@ export function spawnProjectile(posVec, dirVec, angle = 0, opts = {}) {
         rotate(angle),
         "projectile",
     ])
+    // attach culling for runtime-created projectiles as well
+    b.onUpdate(() => {
+        try {
+            if (b.hidden) return
+            const x = b.pos.x
+            const y = b.pos.y
+            if (x < 0 || y < 0 || x > _worldW || y > _worldH) {
+                try { destroy(b) } catch (e) { }
+            }
+        } catch (e) { }
+    })
     pool[idx] = b
     wait(2.5, () => { try { destroy(b) } catch (e) { } })
     return b

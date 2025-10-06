@@ -1,5 +1,4 @@
-// assets.js
-// Centralized asset lists and a helper to ensure assets are registered before the game starts.
+// assets.js — asset lists and loader
 
 export const assetsCharacters = [
     "player",
@@ -8,16 +7,18 @@ export const assetsCharacters = [
 ];
 
 export const assetsEnemies = [
-    "enemy1",
-    "enemy2",
-    "enemy3",
-    "enemy4",
+    "zombie1",
+    "zombie2",
+    "zombie3",
+    "zombie4",
 ];
 
 export const assetsGame = [
     "background",
     "heart",
     "scoreboard",
+    "miniMapBorder",
+    "pauseMenu",
     "xpGem",
     "xpBar",
     "xpBarFull",
@@ -26,6 +27,12 @@ export const assetsGame = [
 export const assetsWeapons = [
     "bullet",
     "bomb",
+];
+
+export const assetsPowerups = [
+    "magnet",
+    "fastAttack",
+    "fastMovement"
 ];
 
 export const assetsSounds = [
@@ -52,6 +59,7 @@ export function loadAll() {
     assetsEnemies.forEach(name => loadSprite(name, `assetsEnemies/${name}.png`));
     assetsGame.forEach(name => loadSprite(name, `assetsGame/${name}.png`));
     assetsWeapons.forEach(name => loadSprite(name, `assetsWeapons/${name}.png`));
+    assetsPowerups.forEach(name => loadSprite(name, `assetsPowerups/${name}.png`));
     assetsButtons.forEach(name => loadSprite(name, `assetsButtons/${name}.png`));
     assetsSounds.forEach(name => loadSound(name, `assetsSounds/${name}.mp3`));
     // loadSprite & loadSound register resources synchronously in Kaboom,

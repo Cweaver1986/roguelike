@@ -1,19 +1,35 @@
-// controls.js
-// Handles player movement and aiming input
+// controls.js — player movement & input handling
 
-export function initControls({ getPlayer, getShootDir, speed = 120 }) {
+import * as game from "./game.js"
+import * as powerups from "./powerups.js"
+import * as keybinds from "./keybinds.js"
+
+export function initControls({ getPlayer, getShootDir, speed = 120, worldW = Infinity, worldH = Infinity }) {
     onUpdate(() => {
+        if (game.isPaused && game.isPaused()) return
         const player = getPlayer()
         if (!player) return
         let x = 0, y = 0
-        if (isKeyDown("a")) x -= 1.5
-        if (isKeyDown("d")) x += 1.5
-        if (isKeyDown("w")) y -= 1.5
-        if (isKeyDown("s")) y += 1.5
+        const leftKey = keybinds.getBind('moveLeft') || 'a'
+        const rightKey = keybinds.getBind('moveRight') || 'd'
+        const upKey = keybinds.getBind('moveUp') || 'w'
+        const downKey = keybinds.getBind('moveDown') || 's'
+        if (isKeyDown(leftKey)) x -= 1.5
+        if (isKeyDown(rightKey)) x += 1.5
+        if (isKeyDown(upKey)) y -= 1.5
+        if (isKeyDown(downKey)) y += 1.5
         if (x || y) {
             const facing = vec2(x, y).unit()
-            player.move(x * speed, y * speed)
-            // you might want to expose facing elsewhere if needed
+            const moveMult = powerups.getMovementMultiplier ? powerups.getMovementMultiplier() : 1
+            player.move(x * speed * moveMult, y * speed * moveMult)
+            // clamp player inside world bounds to prevent leaving the map
+            try {
+                const halfW = player.width ? player.width * 0.5 : 16
+                const halfH = player.height ? player.height * 0.5 : 16
+                player.pos.x = Math.max(halfW, Math.min(player.pos.x, worldW - halfW))
+                player.pos.y = Math.max(halfH, Math.min(player.pos.y, worldH - halfH))
+            } catch (e) { }
+            // expose facing if needed
             player.facing = facing
         }
         // Rotate player to face direction of fire (mouse cursor)

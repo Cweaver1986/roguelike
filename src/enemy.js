@@ -1,12 +1,13 @@
-// enemy.js
-// Handles enemy spawning and behaviors
+// enemy.js — enemy spawning & AI helpers
+
+import * as game from "./game.js"
 
 export function spawnEnemy(opts = {}) {
     const { playerRef, ENEMY_PADDING, w, h } = opts
     if (!playerRef) return
-    // Pick a random enemy sprite
-    const enemySprites = ["enemy1", "enemy2", "enemy3", "enemy4"];
-    const spriteName = enemySprites[Math.floor(Math.random() * enemySprites.length)];
+    // Pick a random zombie sprite (assets named zombie1..zombie4)
+    const zombieSprites = ["zombie1", "zombie2", "zombie3", "zombie4"];
+    const spriteName = zombieSprites[Math.floor(Math.random() * zombieSprites.length)];
     const minDistance = 200; // Minimum distance from player
 
     let x, y;
@@ -15,14 +16,17 @@ export function spawnEnemy(opts = {}) {
         y = rand(ENEMY_PADDING, h - ENEMY_PADDING);
     } while (playerRef && vec2(x, y).dist(playerRef.pos) < minDistance);
 
+    const subtype = spriteName.replace(/\d+$/, '')
     return add([
         sprite(spriteName),
         scale(0.4),
         pos(x, y),
         anchor("center"),
         area({ scale: .7 }),
+        // tag with both the category 'enemy' and a subtype tag (e.g. 'zombie')
         "enemy",
-        { hp: 1 },
+        subtype,
+        { hp: 1, type: subtype },
     ])
 }
 
@@ -36,7 +40,9 @@ export function initEnemyAI() {
 // options: { ENEMY_SPEED }
 export function initEnemyAIWith(getPlayerFn, onEnemyPlayerCollision, options = {}) {
     const ENEMY_SPEED = options.ENEMY_SPEED || 75
+    // by default register AI for all entities tagged 'enemy'
     onUpdate("enemy", (e) => {
+        if (game.isPaused && game.isPaused()) return
         const player = getPlayerFn()
         if (!player) return
         const dir = player.pos.sub(e.pos).unit()

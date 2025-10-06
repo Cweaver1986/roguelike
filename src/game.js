@@ -1,5 +1,4 @@
-// game.js
-// Central game state and handlers: score, bombs, health, collisions, game over & restart
+// game.js — central game state and lifecycle handlers
 
 // Module dependencies will be injected via initGame so this file stays decoupled.
 import { clearProjectiles } from "./projectiles.js"
@@ -11,10 +10,12 @@ let bombs = 3
 let playerHealth = 5
 let invincible = false
 let gameOverFlag = false
+let paused = false
 
 export function initGame(options = {}) {
     // expected options: spawnPlayer, spawnEnemy, renderHearts, renderBombs, setScore,
-    // spawnXPGem, addXP, resetXP, resetXPFill, playDebounced, initialEnemies
+    // spawnXPGem, addXP, resetXP, resetXPFill, playDebounced, initialEnemies,
+    // spawnPowerups
     deps = options
     score = 0
     bombs = options.initialBombs || 3
@@ -25,11 +26,19 @@ export function initGame(options = {}) {
     if (deps.setScore) deps.setScore(0)
     if (deps.renderHearts) deps.renderHearts(playerHealth)
     if (deps.renderBombs) deps.renderBombs(bombs)
+    // spawn any initial powerups (optional)
+    if (deps.spawnPowerups) try { deps.spawnPowerups() } catch (e) { }
 }
 
 export function isGameOver() {
     return gameOverFlag
 }
+
+export function isPaused() { return paused }
+
+export function pauseGame() { paused = true }
+
+export function resumeGame() { paused = false }
 
 export function updateScore() {
     score++
@@ -57,7 +66,6 @@ export function handleProjectileEnemyCollision(p, e) {
         addFloatingScore(e.pos.add(e.width / 2, e.height / 2))
         updateScore()
         if (deps.spawnXPGem) deps.spawnXPGem(e.pos)
-        if (deps.addXP) deps.addXP(1)
         if (deps.spawnEnemy) wait(1.5, () => { if (!gameOverFlag) deps.spawnEnemy() })
     }
 }
@@ -78,7 +86,6 @@ export function handleBombPress() {
         addFloatingScore(enemy.pos)
         updateScore()
         if (deps.spawnXPGem) deps.spawnXPGem(enemy.pos)
-        if (deps.addXP) deps.addXP(1)
         if (deps.spawnEnemy) wait(1.5, () => { if (!gameOverFlag) deps.spawnEnemy() })
     }
 }
@@ -108,6 +115,7 @@ export function gameOver() {
         sprite("gameOver"),
         pos(width() / 2, height() / 2 - 50),
         anchor("center"),
+        fixed(),
         "ui",
     ])
 
@@ -116,6 +124,7 @@ export function gameOver() {
         pos(width() / 2, height() / 2 + 50),
         area(),
         anchor("center"),
+        fixed(),
         "restartBtn",
     ])
 
@@ -151,4 +160,6 @@ export function restartGame() {
     for (let i = 0; i < initial; i++) {
         if (deps.spawnEnemy) deps.spawnEnemy()
     }
+    // spawn powerups again after restart if provided
+    if (deps.spawnPowerups) try { deps.spawnPowerups() } catch (e) { }
 }

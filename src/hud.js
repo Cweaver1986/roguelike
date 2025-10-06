@@ -1,5 +1,4 @@
-// hud.js
-// Manages HUD elements: hearts, bombs, scoreboard, XP bar and XP gems
+// hud.js — HUD elements (hearts, bombs, score, XP)
 
 // Note: this module assumes kaboom is already initialized and assets are registered.
 
@@ -10,6 +9,8 @@ let scoreboardSprite = null
 let xpBarEntity = null
 let xpFill = null
 let xpText = null
+let buffIcons = {}
+import * as powerups from "./powerups.js"
 
 const MAX_BOMB_DISPLAY = 8
 const MAX_HEART_DISPLAY = 10
@@ -91,6 +92,67 @@ export function initHUD() {
     // initialize pools
     initBombPool()
     initHeartPool()
+
+    // prepare buff icons (movement then firerate). We'll create icons only if sprites exist.
+    try {
+        if (getSprite && getSprite('fastMovement')) {
+            buffIcons.movement = add([sprite('fastMovement'), pos(scoreboardSprite.pos.x + 150, scoreboardSprite.pos.y), anchor('center'), fixed(), scale(0.075), z(5)])
+            buffIcons.movement.hidden = true
+        }
+    } catch (e) { }
+    try {
+        if (getSprite && getSprite('fastAttack')) {
+            buffIcons.firerate = add([sprite('fastAttack'), pos(scoreboardSprite.pos.x + 150, scoreboardSprite.pos.y), anchor('center'), fixed(), scale(0.75), z(5)])
+            buffIcons.firerate.hidden = true
+        }
+    } catch (e) { }
+
+    // update loop: render queued buffs to the right of the scoreboard
+    onUpdate(() => {
+        // compute ordered active buffs: movement first, then firerate
+        const active = []
+        const mvRem = powerups.getMovementRemaining ? powerups.getMovementRemaining() : 0
+        const mvDur = powerups.getMovementDuration ? powerups.getMovementDuration() : 0
+        if (mvRem > 0 && mvDur > 0) active.push('movement')
+        const frRem = powerups.getFirerateRemaining ? powerups.getFirerateRemaining() : 0
+        const frDur = powerups.getFirerateDuration ? powerups.getFirerateDuration() : 0
+        if (frRem > 0 && frDur > 0) active.push('firerate')
+
+        const BASE_OFFSET = 175
+        const SPACING = 75
+
+        // Position and visibility for each buff slot
+        for (let i = 0; i < Object.keys(buffIcons).length; i++) {
+            const key = Object.keys(buffIcons)[i]
+            const icon = buffIcons[key]
+            if (!icon) continue
+            const idx = active.indexOf(key)
+            if (idx === -1) {
+                icon.hidden = true
+                continue
+            }
+            // place icon in queue order (0 = nearest scoreboard)
+            icon.pos.x = scoreboardSprite.pos.x + BASE_OFFSET + idx * SPACING
+            icon.pos.y = scoreboardSprite.pos.y
+
+            // compute blinking/steady behavior using the relevant remaining/duration
+            let rem = 0, dur = 0
+            if (key === 'movement') {
+                rem = mvRem; dur = mvDur
+            } else if (key === 'firerate') {
+                rem = frRem; dur = frDur
+            }
+            const ratio = Math.max(0, Math.min(1, rem / dur))
+            if (ratio > 0.5) {
+                icon.hidden = false
+            } else {
+                const norm = (0.5 - ratio) / 0.5
+                const freq = 1 + norm * 1.5 // ramp 1..8 Hz
+                const visible = Math.sin(time() * freq * Math.PI * 2) > 0
+                icon.hidden = !visible
+            }
+        }
+    })
 }
 
 function initBombPool() {

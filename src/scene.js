@@ -1,13 +1,15 @@
-// scene.js
-// Responsible for background, music, and global scene loops (difficulty, zombie sounds)
+// scene.js — background, music, and global scene loops
 
 import * as game from "./game.js"
 import { initWaves } from "./waves.js"
+import * as audio from "./audio.js"
 
 export function initScene(options = {}) {
     const {
-        w = width(),
-        h = height(),
+        // world dimensions (in pixels). If you want a larger map, pass a larger
+        // `worldW` / `worldH` when calling initScene. Defaults to viewport size.
+        worldW = width(),
+        worldH = height(),
         spawnEnemy,
         zombieSounds = [],
         tileSize = 102,
@@ -18,16 +20,17 @@ export function initScene(options = {}) {
         MAX_ENEMIES = 25,
     } = options
 
-    // Play background music
+    // Play background music with the audio manager so volume changes take effect
     try {
-        play(music, { loop: true, volume: musicVolume })
+        audio.playMusic(music, { loop: true })
     } catch (e) {
         // ignore if music asset missing
     }
 
-    // Tile the background across the screen
-    for (let x = 0; x < w; x += tileSize) {
-        for (let y = 0; y < h; y += tileSize) {
+    // Tile the background across the world area (worldW x worldH). We step by
+    // tileSize so the background tiles repeat across the larger world.
+    for (let x = 0; x < worldW; x += tileSize) {
+        for (let y = 0; y < worldH; y += tileSize) {
             add([
                 sprite("background"),
                 pos(x, y),
@@ -39,6 +42,8 @@ export function initScene(options = {}) {
         }
     }
 
-    // Initialize wave manager (difficulty scaling + ambient sounds)
+    // Initialize wave manager (difficulty scaling + ambient sounds). Note the
+    // spawnEnemy callback should be implemented to spawn within the world
+    // bounds the caller provides.
     initWaves({ spawnEnemy, zombieSounds, initialEnemies, MAX_ENEMIES })
 }

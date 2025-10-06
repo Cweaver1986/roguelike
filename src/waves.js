@@ -1,7 +1,7 @@
-// waves.js
-// Manages enemy wave scaling and ambient zombie sounds
+// waves.js — enemy wave manager and ambient sounds
 
 import * as game from "./game.js"
+import { applySfxVolume } from "./audio.js"
 
 export function initWaves(options = {}) {
     const {
@@ -15,6 +15,7 @@ export function initWaves(options = {}) {
 
     loop(9, () => {
         if (game.isGameOver()) return
+        if (game.isPaused && game.isPaused()) return
         if (currentMaxEnemies < MAX_ENEMIES) {
             currentMaxEnemies++
             if (get("enemy").length < currentMaxEnemies) {
@@ -26,6 +27,7 @@ export function initWaves(options = {}) {
     // Maintain a dynamic minimum active enemy floor: half of the current max
     loop(1, () => {
         if (game.isGameOver()) return
+        if (game.isPaused && game.isPaused()) return
         const minActive = Math.floor(currentMaxEnemies / 2)
         const current = get("enemy").length
         if (current < minActive) {
@@ -35,10 +37,11 @@ export function initWaves(options = {}) {
 
     // Play random zombie sound every 12s when enemies exist
     loop(12, () => {
+        if (game.isPaused && game.isPaused()) return
         const enemies = get("enemy")
         if (enemies.length > 0 && zombieSounds && zombieSounds.length > 0) {
             const snd = zombieSounds[Math.floor(Math.random() * zombieSounds.length)]
-            try { play(snd, { volume: 0.1 }) } catch (e) { }
+            try { play(snd, applySfxVolume({ volume: 0.1 })) } catch (e) { }
         }
     })
 }

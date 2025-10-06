@@ -1,5 +1,4 @@
-// score.js
-// Manages score state and optional persistence, and notifies HUD via callback
+// score.js — score state and persistence helpers
 
 let score = 0
 let onScoreChanged = null
