@@ -1,0 +1,10 @@
+{
+    "name": "kaboom-roguelike",
+    "version": "0.1.0",
+    "description": "A small browser roguelike built with Kaboom.js",
+    "scripts": {
+        "serve": "python -m http.server 8000"
+    },
+    "author": "",
+    "license": "UNLICENSED"
+}

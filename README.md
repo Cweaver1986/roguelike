@@ -1,25 +1,43 @@
 # Roguelike (Kaboom.js)
 
-A small browser roguelike made with Kaboom.js. Drop the folder on a static web server (or open `index.html` in a modern browser) to play.
+This is a small browser roguelike built with Kaboom.js. The project is split into modules under `src/` for easier development and maintenance.
 
-Contents
+Quick start
+
+1. Open a PowerShell terminal in the project root:
+
+	cd 'C:\Users\User\Desktop\roguelike'
+
+2. Serve the folder with a simple static server (Python is an easy option):
+
+	python -m http.server 8000
+
+3. Open http://localhost:8000 in your browser.
+
+Project structure (important files)
 - `index.html` — game entry page
-- `main.js` — game logic (Kaboom.js)
-- `assets*` folders — sprites and sounds used by the game
+- `src/entry.js` — safe Kaboom bootstrap (initializes Kaboom and preloads assets)
+- `src/mainController.js` — main orchestration; call `initMain()` to start the game
+- `src/assets.js` — central asset list and loader
+- `src/hud.js`, `src/player.js`, `src/enemy.js`, `src/projectiles.js`, `src/combat.js`, `src/controls.js`, `src/waves.js`, `src/scene.js`, `src/game.js`, `src/xp.js`, `src/utils.js` — feature modules
 
-Quick start (PowerShell)
+Running and developing
+- The app runs entirely in the browser and doesn't need a backend. Serve the folder over HTTP and open `index.html`.
+- Edit files in `src/` and reload the page to see changes.
 
-# Initialize and open locally
-# You can serve the folder with a simple static server. If you have Python:
-python -m http.server 8000
+Making a GitHub repository
+1. git init; git add .; git commit -m "Initial commit"
+2. Create a repo on GitHub and push:
+	git remote add origin <your-repo-url>
+	git branch -M main
+	git push -u origin main
 
-# Then open http://localhost:8000 in your browser
+Files included for publishing
+- `.gitignore` — ignores common artifacts like `node_modules/` and OS files.
+- `package.json` — small developer convenience script: `npm run serve` runs a local static server using Python.
 
-How to publish to GitHub
-1. Initialize a git repo and commit the files.
-2. Create a repository on GitHub (via web UI or `gh repo create`).
-3. Add the remote and push (example commands are below).
+Notes & next steps
+- No license file is included per author request.
+- Optional improvements: CI for static checks, GitHub Pages deployment, or performance-focused pooling for enemies/projectiles.
 
-Notes
-- This project uses Kaboom from the CDN (import in `main.js`).
-- If you move assets, update the paths in `main.js` accordingly.
+If you'd like, I can add GitHub Actions, a deploy script, or wire score persistence before you push — tell me which and I'll add them.
