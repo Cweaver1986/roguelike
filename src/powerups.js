@@ -18,17 +18,21 @@ export function spawnMagnet(atPos) {
     return add([rect(18, 18), pos(atPos), anchor('center'), color(180, 100, 255), area(), 'powerup', { type: 'magnet' }])
 }
 
-export function activateMagnet() {
+export function activateMagnet(speedMultiplier = 1) {
     const player = _getPlayer && _getPlayer()
     if (!player) return
-    // pull all xp gems to player over a short tween (0.3s) then destroy them
+    // pull all xp gems to player over a short tween; speedMultiplier < 1 makes
+    // the pull slower (longer duration). Default behavior approximates ~0.3s.
     for (const g of get('xpGem')) {
-        // animate by moving directly toward player
-        // we step multiple times to simulate a quick pull
         const dir = player.pos.sub(g.pos)
-        const steps = 6
+        // base steps and stepDelay create a ~0.3s animation; scale with inverse
+        // of speedMultiplier so 0.5 => twice as long.
+        const baseSteps = 6
+        const baseDelay = 0.05
+        const steps = Math.max(2, Math.round(baseSteps / Math.max(0.01, speedMultiplier)))
+        const delay = baseDelay / Math.max(0.01, speedMultiplier)
         for (let i = 1; i <= steps; i++) {
-            wait(i * 0.05, () => {
+            wait(i * delay, () => {
                 try { g.pos = g.pos.add(dir.scale(1 / steps)) } catch (e) { }
                 if (i === steps) {
                     try { game.handlePlayerPickupXP(player, g) } catch (e) { }
@@ -92,6 +96,11 @@ export function activateMovement(durationSec = 10) {
 
 export function getMovementMultiplier() {
     return Date.now() < _movementExpires ? 1.75 : 1
+}
+
+// Bullets travel faster while movement powerup is active
+export function getProjectileSpeedMultiplier() {
+    return Date.now() < _movementExpires ? 1.5 : 1
 }
 
 export function getMovementRemaining() {

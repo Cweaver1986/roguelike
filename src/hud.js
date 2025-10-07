@@ -8,6 +8,8 @@ let scoreText = null
 let scoreboardSprite = null
 let xpBarEntity = null
 let xpFill = null
+let xpCapLeft = null
+let xpCapRight = null
 let xpText = null
 let buffIcons = {}
 import * as powerups from "./powerups.js"
@@ -70,6 +72,13 @@ export function initHUD() {
         scale(0, 1.1),
     ])
 
+    // rounded caps for the fill so the yellow bar looks rounded instead of
+    // colliding with the artwork. We'll position these each frame in onUpdate.
+    const visualH = XP_BAR_HEIGHT * 1.1
+    const capR = visualH / 2
+    xpCapLeft = add([circle(capR), pos(leftX, fillY + visualH / 2), anchor('center'), fixed(), color(255, 200, 0), z(4)])
+    xpCapRight = add([circle(capR), pos(leftX, fillY + visualH / 2), anchor('center'), fixed(), color(255, 200, 0), z(4)])
+
     xpFill.targetScaleX = xpFill.targetScaleX || 0
     xpFill.onUpdate(() => {
         const cur = xpFill.scale.x || 0
@@ -78,6 +87,23 @@ export function initHUD() {
         const next = cur + (target - cur) * Math.min(1, speed * dt())
         xpFill.scale.x = next
         if (Math.abs(next - target) < 0.001) xpFill.scale.x = target
+        // update cap positions based on current visual width
+        try {
+            const visualW = XP_BAR_WIDTH * xpFill.scale.x
+            const visualH = XP_BAR_HEIGHT * 1.1
+            const cx = xpFill.pos.x
+            const cy = xpFill.pos.y + visualH / 2
+            if (xpCapLeft) {
+                xpCapLeft.pos.x = cx
+                xpCapLeft.pos.y = cy
+                xpCapLeft.hidden = next <= 0.001
+            }
+            if (xpCapRight) {
+                xpCapRight.pos.x = cx + visualW
+                xpCapRight.pos.y = cy
+                xpCapRight.hidden = next <= 0.001
+            }
+        } catch (e) { }
     })
 
     xpText = add([

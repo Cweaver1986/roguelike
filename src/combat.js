@@ -22,7 +22,8 @@ export function initAutoAttack(getPlayerFn, getShootDirFn, playDebouncedFn) {
             const barrelOffset = 32
             const spawnPos = player.pos.add(dir.scale(barrelOffset))
             const bulletAngle = player.angle - 90
-            spawnProjectile(spawnPos, dir, bulletAngle, { speed: 400, scale: 0.14, sprite: "bullet" })
+            const speedMult = powerups.getProjectileSpeedMultiplier ? powerups.getProjectileSpeedMultiplier() : 1
+            spawnProjectile(spawnPos, dir, bulletAngle, { speed: 400 * speedMult, scale: 0.14, sprite: "bullet" })
             cooldown = interval
         }
     })
