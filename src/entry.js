@@ -11,6 +11,9 @@ kaboom({ background: [0, 0, 0] });
 loadAll().then(() => {
     // import the original script as a module so it runs after assets are registered
     import("../main.js").then(() => {
-        console.log("Main script imported after assets registered.");
-    }).catch(err => console.error("Failed to import main.js:", err));
+        // main script imported after assets registered
+        // console.log("Main script imported after assets registered.");
+    }).catch(err => {
+        // console.error("Failed to import main.js:", err)
+    });
 }).catch(err => console.error("Asset loading failed:", err));

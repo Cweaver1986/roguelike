@@ -19,6 +19,7 @@ function makeBullet(spriteName = "bullet", scaleVal = 0.14) {
         scale(scaleVal),
         "projectile",
     ])
+    b.isCrit = false
     b.hidden = true
     // Cull bullets that move off the world bounds
     b.onUpdate(() => {
@@ -81,6 +82,8 @@ export function spawnProjectile(posVec, dirVec, angle = 0, opts = {}) {
         rotate(angle),
         "projectile",
     ])
+    // allow caller to mark a projectile as a critical hit
+    try { b.isCrit = !!opts.isCrit } catch (e) { b.isCrit = false }
     // attach culling for runtime-created projectiles as well
     b.onUpdate(() => {
         try {

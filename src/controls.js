@@ -2,6 +2,7 @@
 
 import * as game from "./game.js"
 import * as powerups from "./powerups.js"
+import { getMoveSpeedMultiplier } from './skills.js'
 import * as keybinds from "./keybinds.js"
 
 export function initControls({ getPlayer, getShootDir, speed = 120, worldW = Infinity, worldH = Infinity }) {
@@ -21,7 +22,8 @@ export function initControls({ getPlayer, getShootDir, speed = 120, worldW = Inf
         if (x || y) {
             const facing = vec2(x, y).unit()
             const moveMult = powerups.getMovementMultiplier ? powerups.getMovementMultiplier() : 1
-            player.move(x * speed * moveMult, y * speed * moveMult)
+            const skillMove = typeof getMoveSpeedMultiplier === 'function' ? getMoveSpeedMultiplier() : 1
+            player.move(x * speed * moveMult * skillMove, y * speed * moveMult * skillMove)
             // clamp player inside world bounds to prevent leaving the map
             try {
                 const halfW = player.width ? player.width * 0.5 : 16

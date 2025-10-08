@@ -5,7 +5,8 @@ import { initHUD, renderHearts, renderBombs, setScore, updateXPUI as hudUpdateXP
 import { playDebounced } from "./utils.js"
 import { spawnPlayer, getPlayer, getShootDir } from "./player.js"
 import { initAutoAttack } from "./combat.js"
-import { initXP, addXP, resetXP } from "./xp.js"
+import { initXP, addXP, resetXP, registerOnLevelUp } from "./xp.js"
+import { resetAllSkills } from "./skills.js"
 import { spawnEnemy as spawnEnemyMod, initEnemyAIWith } from "./enemy.js"
 import * as game from "./game.js"
 import { initScene } from "./scene.js"
@@ -17,6 +18,7 @@ import * as audio from "./audio.js"
 import * as keybinds from "./keybinds.js"
 import * as gamestate from "./game.js"
 import * as powerups from "./powerups.js"
+// debug logging removed
 
 export function initMain() {
     const PLAYER_SPEED = 120
@@ -38,6 +40,20 @@ export function initMain() {
 
     initXP(hudUpdateXPUI)
     initHUD()
+
+    // Ensure skillMenu module is evaluated at startup so its console aliases exist
+    try { import('./skillMenu.js').catch(() => { }) } catch (e) { }
+
+    // runtime skillMenu availability check removed (debug)
+
+    // register level-up handler: open the skill menu when player levels up
+    try {
+        registerOnLevelUp((newLevel) => {
+            try {
+                import('./skillMenu.js').then(mod => { if (mod && typeof mod.openSkillMenu === 'function') mod.openSkillMenu() }).catch(() => { })
+            } catch (e) { }
+        })
+    } catch (e) { }
 
     function spawnXPGem(atPos) { spawnXPGemHUD(atPos) }
 
@@ -72,7 +88,7 @@ export function initMain() {
         }
     }
 
-    game.initGame({ spawnPlayer: () => { player = spawnPlayer(); }, spawnEnemy: spawnEnemy, renderHearts: renderHearts, renderBombs: renderBombs, setScore: setScore, spawnXPGem: spawnXPGem, addXP: addXP, resetXP: resetXP, resetXPFill: resetXPFill, playDebounced: playDebounced, initialBombs: 3, initialHealth: 5, initialEnemies: INITIAL_ENEMIES, spawnPowerups })
+    game.initGame({ spawnPlayer: () => { player = spawnPlayer(); }, spawnEnemy: spawnEnemy, renderHearts: renderHearts, renderBombs: renderBombs, setScore: setScore, spawnXPGem: spawnXPGem, addXP: addXP, resetXP: resetXP, resetXPFill: resetXPFill, playDebounced: playDebounced, initialBombs: 3, initialHealth: 5, initialEnemies: INITIAL_ENEMIES, spawnPowerups, resetSkills: resetAllSkills })
 
     // Spawn player near the center of the world (not the viewport center when
     // MAP_SCALE > 1).
@@ -100,6 +116,11 @@ export function initMain() {
     // Pause toggle (uses keybinds.pause by default)
     const pauseKey = keybinds.getBind('pause') || 'escape'
     onKeyPress(pauseKey, () => {
+        try {
+            // If the skill menu is open, ignore pause toggles to avoid
+            // resuming the background game while the level-up UI is visible.
+            if (globalThis.isSkillMenuOpen && globalThis.isSkillMenuOpen()) return
+        } catch (e) { }
         if (!gamestate.isPaused()) {
             gamestate.pauseGame()
             togglePauseMenu()

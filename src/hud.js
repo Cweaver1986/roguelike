@@ -184,7 +184,7 @@ export function initHUD() {
 function initBombPool() {
     if (bombPool.length > 0) return
     for (let i = 0; i < MAX_BOMB_DISPLAY; i++) {
-        const b = add([sprite("bomb"), pos(-100, -100), scale(0.15), fixed(), "hudBomb"])
+        const b = add([sprite("bomb"), pos(-100, -100), scale(0.18), fixed(), "hudBomb"])
         b.hidden = true
         bombPool.push(b)
     }
@@ -214,11 +214,48 @@ function initHeartPool() {
 
 export function renderHearts(health) {
     initHeartPool()
+    // Constants for sizing and spacing
+    const LEFT_X = 24
+    const BASE_SPACING = 32 // base horizontal spacing between hearts at scale 1
+    const BASE_SCALE = 0.085 // original sprite scale used in initHeartPool
+    const MAX_SCALE_MULT = 1.4 // hearts can be up to 40% larger
+
+    // Determine available width to the scoreboard (prevent overlap)
+    let scoreboardCenterX = null
+    try { scoreboardCenterX = scoreboardSprite && scoreboardSprite.pos ? scoreboardSprite.pos.x : null } catch (e) { scoreboardCenterX = null }
+    if (!scoreboardCenterX) scoreboardCenterX = width() / 2
+    // reserve some extra space to the right (scoreboard and padding)
+    const RESERVED_RIGHT_SPACE = 50
+    const AVAILABLE_WIDTH = Math.max(80, scoreboardCenterX - 60 - LEFT_X - RESERVED_RIGHT_SPACE)
+
+    const count = Math.max(0, Math.min(heartPool.length, health || 0))
+    // If no hearts to show, hide all and return
+    if (count <= 0) {
+        for (let i = 0; i < heartPool.length; i++) heartPool[i].hidden = true
+        return
+    }
+
+    // Compute a scale multiplier: try to use MAX_SCALE_MULT, but shrink if
+    // the total width would exceed AVAILABLE_WIDTH.
+    const baseTotalWidth = count * BASE_SPACING
+    let scaleMult = MAX_SCALE_MULT
+    if (baseTotalWidth * scaleMult > AVAILABLE_WIDTH) {
+        scaleMult = Math.max(0.1, AVAILABLE_WIDTH / baseTotalWidth)
+    }
+
+    const spacing = BASE_SPACING * scaleMult
+    const heartScale = BASE_SCALE * scaleMult
+
     for (let i = 0; i < heartPool.length; i++) {
         const h = heartPool[i]
-        if (i < health) {
-            h.pos = vec2(24 + i * 32, 12)
-            h.hidden = false
+        if (i < count) {
+            try {
+                h.pos = vec2(LEFT_X + i * spacing, 12)
+                h.hidden = false
+                // set individual scale components if available
+                try { h.scale.x = heartScale } catch (e) { try { h.scale = heartScale } catch (e) { } }
+                try { h.scale.y = heartScale } catch (e) { try { h.scale = heartScale } catch (e) { } }
+            } catch (e) { }
         } else {
             h.hidden = true
         }

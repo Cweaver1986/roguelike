@@ -7,6 +7,9 @@ const XP_STEP = 5
 let xp = 0
 let level = 1
 let hudUpdateFn = null
+let _onLevelUp = null
+let _pendingLevelUps = 0
+let _menuActive = false
 
 export function initXP(hudUpdate) {
     hudUpdateFn = hudUpdate
@@ -28,9 +31,35 @@ function checkLevelUp() {
     while (level < MAX_LEVELS && xp >= xpToNext(level)) {
         xp -= xpToNext(level)
         level++
-        // place to grant perks if desired
+        // queue a pending level-up (we'll show menus one at a time)
+        _pendingLevelUps++
     }
+    // If there are pending level-ups and an onLevelUp handler, trigger one
+    try {
+        if (_pendingLevelUps > 0 && typeof _onLevelUp === 'function' && !_menuActive) {
+            // Consume one pending level-up because we're about to show the
+            // menu immediately for it. Remaining pending level-ups (if any)
+            // will be handled after the player makes their choice.
+            _pendingLevelUps = Math.max(0, _pendingLevelUps - 1)
+            _menuActive = true
+            try { _onLevelUp(level) } catch (e) { }
+        }
+    } catch (e) { }
     notifyHUD()
+}
+
+// Called by the skill menu when a level-up choice has been handled so the
+// next pending level-up (if any) can be shown.
+export function handleNextPendingLevelUp() {
+    try {
+        // mark the previous menu as finished
+        _menuActive = false
+        if (_pendingLevelUps > 0 && typeof _onLevelUp === 'function') {
+            _pendingLevelUps--
+            _menuActive = true
+            try { _onLevelUp(level) } catch (e) { }
+        }
+    } catch (e) { }
 }
 
 export function addXP(n = 1) {
@@ -43,6 +72,8 @@ export function resetXP() {
     level = 1
     notifyHUD()
 }
+
+export function registerOnLevelUp(fn) { _onLevelUp = fn }
 
 export function getXP() { return xp }
 export function getLevel() { return level }

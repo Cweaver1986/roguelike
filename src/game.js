@@ -2,6 +2,7 @@
 
 // Module dependencies will be injected via initGame so this file stays decoupled.
 import { clearProjectiles } from "./projectiles.js"
+import { getDamageMultiplier, getKnockbackStrength, getArmorReductionPercent, getXPMultiplier, getDodgeChancePercent, getMaxHealthBonus } from "./skills.js"
 
 let deps = {}
 
@@ -11,6 +12,9 @@ let playerHealth = 5
 let invincible = false
 let gameOverFlag = false
 let paused = false
+// Fortify: track how much Fortify bonus has been applied this round so
+// we can adjust current health when the skill is leveled mid-round.
+let _appliedFortifyBonus = 0
 
 export function initGame(options = {}) {
     // expected options: spawnPlayer, spawnEnemy, renderHearts, renderBombs, setScore,
@@ -19,7 +23,12 @@ export function initGame(options = {}) {
     deps = options
     score = 0
     bombs = options.initialBombs || 3
-    playerHealth = options.initialHealth || 5
+    // base health for the round plus Fortify bonus (applies only for this round)
+    const base = options.initialHealth || 5
+    let bonus = 0
+    try { bonus = typeof getMaxHealthBonus === 'function' ? getMaxHealthBonus() : 0 } catch (e) { }
+    playerHealth = Math.max(1, base + (bonus || 0))
+    _appliedFortifyBonus = bonus || 0
     invincible = false
     gameOverFlag = false
 
@@ -60,7 +69,27 @@ export function addFloatingScore(position) {
 
 export function handleProjectileEnemyCollision(p, e) {
     destroy(p)
-    e.hp -= 1
+    // base damage 1, modified by Power Strike multiplier
+    try {
+        const dmgMult = getDamageMultiplier('skill_power') || 1
+        // if projectile was flagged critical, amplify damage
+        const base = 1
+        const critMult = (p && p.isCrit) ? 1.5 : 1
+        const dmg = Math.max(1, Math.round(base * dmgMult * critMult))
+        e.hp -= dmg
+        // apply knockback to enemy if available
+        const kb = getKnockbackStrength()
+        try {
+            if (kb && e && e.pos && p && p.pos) {
+                const dir = e.pos.sub(p.pos).unit()
+                e.move && e.move(dir.scale(kb))
+                // also nudge position directly (in case move isn't present)
+                try { e.pos = e.pos.add(dir.scale(kb * 0.25)) } catch (e) { }
+            }
+        } catch (err) { }
+    } catch (err) {
+        e.hp -= 1
+    }
     if (e.hp <= 0) {
         destroy(e)
         addFloatingScore(e.pos.add(e.width / 2, e.height / 2))
@@ -71,7 +100,13 @@ export function handleProjectileEnemyCollision(p, e) {
 }
 
 export function handlePlayerPickupXP(p, g) {
-    if (deps.addXP) deps.addXP(g.value || 1)
+    try {
+        const mult = getXPMultiplier ? getXPMultiplier() : 1
+        const val = Math.max(1, Math.round((g.value || 1) * mult))
+        if (deps.addXP) deps.addXP(val)
+    } catch (e) {
+        if (deps.addXP) deps.addXP(g.value || 1)
+    }
     destroy(g)
 }
 
@@ -93,7 +128,23 @@ export function handleBombPress() {
 export function playerHitByEnemy(enemy, playerEntity) {
     if (!invincible) {
         invincible = true
-        playerHealth -= 1
+        // check dodge chance first (Escape skill)
+        try {
+            const dodge = typeof getDodgeChancePercent === 'function' ? getDodgeChancePercent() : 0
+            if (dodge && Math.random() * 100 < dodge) {
+                // dodged — no damage
+                wait(0.5, () => invincible = false)
+                return
+            }
+        } catch (e) { }
+        // base damage 1; reduce by armor percent from skill_armor
+        try {
+            const armorPct = getArmorReductionPercent() || 0
+            const dmg = Math.max(1, Math.round(1 * (1 - armorPct / 100)))
+            playerHealth -= dmg
+        } catch (e) {
+            playerHealth -= 1
+        }
         if (deps.renderHearts) deps.renderHearts(playerHealth)
         // push player back a bit
         if (playerEntity && enemy) playerEntity.move(playerEntity.pos.sub(enemy.pos).unit().scale(50))
@@ -142,6 +193,8 @@ export function restartGame() {
 
     if (deps.resetXP) deps.resetXP()
     if (deps.resetXPFill) deps.resetXPFill()
+    // reset skill state if the caller provided a reset hook
+    if (deps.resetSkills) try { deps.resetSkills() } catch (e) { }
 
     if (deps.renderHearts) deps.renderHearts(playerHealth)
     if (deps.renderBombs) deps.renderBombs(bombs)
@@ -163,3 +216,20 @@ export function restartGame() {
     // spawn powerups again after restart if provided
     if (deps.spawnPowerups) try { deps.spawnPowerups() } catch (e) { }
 }
+
+// Called when Fortify skill changes to apply any additional bonus for the
+// remainder of this round. Increases playerHealth by the delta between the
+// new bonus and the previously applied bonus, and updates the HUD if available.
+export function refreshFortifyBonus() {
+    try {
+        const newBonus = typeof getMaxHealthBonus === 'function' ? getMaxHealthBonus() : 0
+        const delta = Math.max(0, (newBonus || 0) - (_appliedFortifyBonus || 0))
+        if (delta > 0) {
+            playerHealth = playerHealth + delta
+            _appliedFortifyBonus = newBonus || 0
+            if (deps.renderHearts) deps.renderHearts(playerHealth)
+        }
+    } catch (e) { }
+}
+
+export function getAppliedFortifyBonus() { return _appliedFortifyBonus }
