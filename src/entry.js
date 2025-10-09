@@ -4,6 +4,18 @@
 import kaboom from "https://unpkg.com/kaboom/dist/kaboom.mjs";
 import { loadAll } from "./assets.js";
 
+// Attempt to load a spooky display font from Google Fonts. This injects the
+// link tag so the font is available to the canvas text rendering (Kaboom
+// uses canvas fonts from document fonts). If offline, this will silently
+// fail and the engine will fall back to a default font.
+try {
+    const href = "https://fonts.googleapis.com/css2?family=Creepster&display=swap"
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = href
+    document.head.appendChild(link)
+} catch (e) { }
+
 // initialize kaboom with the same options used previously
 kaboom({ background: [0, 0, 0] });
 
